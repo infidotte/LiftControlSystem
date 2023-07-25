@@ -1,172 +1,214 @@
 package org.example.Entity;
 
-import lombok.Data;
 import org.example.Data.States;
 
 import java.util.List;
 import java.util.*;
 
-@Data
 public class Cabin extends Thread {
 
-    private final List<Floor> floors;
-
+    //region fields of TZ
     private int currFloor = 1;
-
     private States states;
-
-    boolean up = false;
-    boolean down = false;
-
-    private Map<Integer, Integer> order = new HashMap<>(20);
-
-    private boolean[] pick = new boolean[20];
-
-    private int pickCapacityUp = 0;
-    private int pickCapacityDown = 0;
-    private int dropCapacityUp = 0;
-    private int dropCapacityDown = 0;
-    private int pickCapacityStay = 0;
-
-
-    private int maxCapacity;
     private int currCapacity = 0;
+    private final int maxCapacity;
+    private boolean sensor;
+    //endregion
 
-    public Cabin(List<Floor> floors, String name, int maxCapacity) {
+    //region others fields
+    private final List<Floor> floors;
+    private Map<Integer, Integer> order = new HashMap<>(20);
+    Queue<Integer> mainOrder;
+    private boolean up = false;
+    private boolean down = false;
+    //endregion
+
+    //region constructor
+    public Cabin(List<Floor> floors, String name, int maxCapacity, Queue<Integer> mainOrder) {
         super(name);
+        this.mainOrder = mainOrder;
         this.floors = floors;
         this.maxCapacity = maxCapacity;
     }
+    //endregion
 
+    //region main methods
     @Override
     public void run() {
         while (true) {
-            try {
-                if (up || down) {
-                    System.out.println(
-                            String.format(
-                                    "%s on %s : pcu-%s, pcd-%s, pcs-%s, dcu-%s, dcd-%s",
-                                    currentThread().getName(),
-                                    currFloor,
-                                    pickCapacityUp,
-                                    pickCapacityDown,
-                                    pickCapacityStay,
-                                    dropCapacityUp,
-                                    dropCapacityDown));
-                }
-                if (pickCapacityDown + pickCapacityUp != 0 || dropCapacityDown + dropCapacityUp != 0 || pickCapacityStay != 0) {
-                    if (order.containsKey(currFloor)) {
-                        dropPassengers(currFloor);
-                    }
-                    /*if (up && pickCapacityUp > 1 && pick[currFloor - 1]) {
-                        pickCapacityUp--;
-                        pickCapacityDown++;
-                    }*/
-                    if (pick[currFloor - 1]) {
+            //if(isStay()) setStates(States.standing_with_doors_open); is optional bcz make a lot of trash in console
 
-                        pickPassengers(currFloor);
-                    }
-                    definePath();
-                } else {
-                    if (currFloor > 1) {
-                        goDown();
-                    } else {
-                        stay();
-                    }
-                }
-                Thread.sleep(500);
-                if (up) currFloor++;
-                else if (down) currFloor--;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+            //print state, handles passengers, move
+            if (order.containsKey(currFloor)) {
+                dropPassengers(currFloor);
             }
+            if (floors.get(currFloor - 1).getIsCalled().get()) {
+                pickPassengers(currFloor);
+            }
+            chooseDirection();
+            catchSleep(500);
+            if (up) currFloor++;
+            else if (down) currFloor--;
+            updateFloors();
         }
     }
 
-    void definePath() {
-        /*if (up) {
-            if (pickCapacityUp != 0 || dropCapacityUp != 0) goUp();
-            else if (pickCapacityDown != 0 || dropCapacityDown != 0) goDown();
-            else stay();
-        } else if (down) {
-            if (pickCapacityDown != 0 || dropCapacityDown != 0) goDown();
-            else if (pickCapacityUp != 0 || dropCapacityUp != 0) goUp();
-            else stay();
+    void chooseDirection() {
+        //has a passengers who must be picked on upper floors
+        boolean anyPickOnUpperFloors = floors.stream().anyMatch(f -> f.getNumber() > currFloor
+                && f.getIsCalled().get() && f.isSubscriber(this));
+        //has a passengers who must be picked on down floors
+        boolean anyPickOnDownFloors = floors.stream().anyMatch(f -> f.getNumber() < currFloor
+                && f.getIsCalled().get() && f.isSubscriber(this));
+        //has a passengers who must be dropped on upper floors
+        boolean anyDropOnUpFloors = order.keySet().stream().anyMatch(k -> k > currFloor);
+        //has a passengers who must be dropped on down floors
+        boolean anyDropOnDownFloors = order.keySet().stream().anyMatch(k -> k < currFloor);
 
+        if (isStay()) {
+            if (anyDropOnUpFloors || anyPickOnUpperFloors) goUp();
+            if (anyDropOnDownFloors || anyPickOnDownFloors) goDown();
         } else {
-            if (pickCapacityDown != 0) goDown();
-            else if (pickCapacityUp != 0) goUp();
-            else stay();
-        }*/
-        if (pickCapacityStay != 0) stay();
-        else if (pickCapacityUp != 0 || dropCapacityUp != 0) goUp();
-        else if (pickCapacityDown != 0 || dropCapacityDown != 0) goDown();
-        else stay();
+            if (!(anyPickOnUpperFloors || anyPickOnDownFloors || anyDropOnDownFloors || anyDropOnUpFloors)) stay();
+            if (up) {
+                if (anyPickOnUpperFloors || anyDropOnUpFloors) goUp();
+                else goDown();
+            } else if (down) {
+                if (anyDropOnDownFloors || anyPickOnDownFloors) goDown();
+                else goUp();
+            }
+        }
+
     }
 
     void pickPassengers(int currentFloor) {
-        Floor fl = floors.get(currentFloor - 1);
-        if (fl.getIsCalled().get()) {
+        sensor = true;
+        Floor floor = floors.get(currentFloor - 1);
+        if (floor.getIsCalled().get() && floor.isSubscriber(this)) {
 
-            while (fl.getIsCalled().get()) {
-                if (currCapacity + 1 <= maxCapacity) {
-                    int toFloor = fl.getIn();
-                    if (toFloor != currentFloor) {
-
-                        if (toFloor > currFloor) dropCapacityUp++;
-                        else if (toFloor < currFloor) dropCapacityDown++;
-                        order.put(toFloor, order.getOrDefault(toFloor, 0) + 1);
-                        currCapacity++;
-                        System.out.println(currentThread().getName() + "\t \t peek pass on " + currentFloor + " floor (" + currCapacity + ")");
-                    }
-                    if (!fl.getIsCalled().get()) pick[currentFloor - 1] = false;
-                    if (up) pickCapacityUp--;
-                    else if (down) pickCapacityDown--;
-                    else pickCapacityStay--;
-                } else{
+            while (floor.getIsCalled().get()) {
+                if (currCapacity < maxCapacity) {
+                    int toFloor = floor.getIn();
+                    pressFloorButton(toFloor);
+                } else {
                     System.out.println(currentThread().getName() + "\u001B[31m" + "can't peek" + "\u001B[0m");
+                    mainOrder.add(currentFloor);
+                    floor.unSubscribe();
                     return;
                 }
             }
+            floor.unSubscribe();
         }
+        sensor = false;
     }
 
     private void dropPassengers(int currentFloor) {
-        int countOfDroppedPass = order.remove(currentFloor);
-        currCapacity -= countOfDroppedPass;
-        if (up) dropCapacityUp -= countOfDroppedPass;
-        if (down) dropCapacityDown -= countOfDroppedPass;
-        if(dropCapacityUp < 0){
-            System.out.println("break");
-        }
-        System.out.println(currentThread().getName() + "\t \t drop " + countOfDroppedPass + " pass on " + currentFloor + " floor");
+        sensor = true;
+        int countOfDroppedPassengers = order.remove(currentFloor);
+        currCapacity -= countOfDroppedPassengers;
+        System.out.println(currentThread().getName() + "\t \t drop " + countOfDroppedPassengers + " pass on " + currentFloor + " floor");
+        sensor = false;
     }
 
-    public void addToOrder(Integer toFloor) {
-        if (toFloor > currFloor) pickCapacityUp++;
-        else if (toFloor < currFloor) pickCapacityDown++;
-        else pickCapacityStay++;
-        definePath();
-        pick[toFloor - 1] = true;
+    private void updateFloors() {
+        floors.forEach(floor -> {
+            if (Objects.equals(getName(), "firstLift")) {
+                floor.setCabOneCurrentFloor(currFloor);
+                floor.setCabOneCurrentState(states);
+            }
+            if (Objects.equals(getName(), "secondLift")) {
+                floor.setCabTwoCurrentFloor(currFloor);
+                floor.setCabTwoCurrentState(states);
+            }
+        });
     }
+    //endregion
 
-    void goUp() {
+    //region methods of movement
+    private void goUp() {
         up = true;
         down = false;
-        states = States.driving_up;
+        setStates(States.driving_up);
     }
 
-    void goDown() {
+    private void goDown() {
         up = false;
         down = true;
-        states = States.riding_down;
+        setStates(States.riding_down);
     }
 
-    void stay() {
+    private void stay() {
         up = down = false;
+        setStates(States.standing_with_doors_open);
+    }
+    //endregion
+
+    //region methods of TZ
+    private void pressFloorButton(int toFloor) {
+        if (toFloor != currFloor) {
+            order.put(toFloor, order.getOrDefault(toFloor, 0) + 1);
+            currCapacity++;
+            System.out.println(currentThread().getName() + "\t \t peek pass  (" + currCapacity + ")");
+        }
     }
 
-    boolean isStay() {
-        return (up && down);
+    private void callDispatcher() {
+        System.out.println("Call a dispatcher");
     }
+
+    private void openDoors() {
+        setStates(States.closing_doors);
+        catchSleep(100);
+    }
+
+    private void closeDoors() {
+        //check if sensor doesn't catch any people
+        //else retry
+        if (!sensor) {
+            setStates(States.closing_doors);
+            catchSleep(100);
+        } else {
+            catchSleep(100);
+            closeDoors();
+        }
+
+    }
+    //endregion
+
+    //region functional
+    private void catchSleep(int time) {
+        try {
+            sleep(time);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    //endregion
+
+    //region getters and setters
+    public boolean isStay() {
+        return !(up || down);
+    }
+
+    public int getCurrFloor() {
+        return currFloor;
+    }
+
+    public boolean isUp() {
+        return up;
+    }
+
+    public void setUp(boolean up) {
+        this.up = up;
+    }
+
+    public boolean isDown() {
+        return down;
+    }
+
+    private void setStates(States state) {
+        this.states = state;
+        System.out.println(String.format("%s has %s state on %s", currentThread().getName(), states, currFloor));
+    }
+    //endregion
 }

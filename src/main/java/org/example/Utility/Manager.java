@@ -1,83 +1,81 @@
 package org.example.Utility;
 
-import org.example.Data.States;
 import org.example.Entity.Cabin;
 import org.example.Entity.Floor;
-import org.example.Entity.MyCab;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Manager implements Runnable {
     List<Floor> floors = new ArrayList<>(20);
-    Cabin fl = new Cabin(floors, "firstLift", 5);
-    Cabin sl = new Cabin(floors, "secondLift", 10);
-    //MyCab fl = new MyCab(floors, "firstLift", 5);
+    Queue<Integer> mainOrder = new ConcurrentLinkedQueue<>();
+
     @Override
     public void run() {
+        Cabin firstLift = new Cabin(floors, "firstLift", 5, mainOrder);
+        Cabin secondLift = new Cabin(floors, "secondLift", 10, mainOrder);
         for (int i = 1; i <= 20; i++) {
             floors.add(new Floor(i));
         }
-        fl.start();
-        random();
+
+        firstLift.start();
+        secondLift.start();
+
+        //hardCode(firstLift, secondLift);
+        random(firstLift, secondLift);
 
     }
-    private Cabin chooseLift(Cabin firstLift, Cabin secondLift, int fromFloor){
-        int flFloor = firstLift.getCurrFloor();
-        int slFloor = secondLift.getCurrFloor();
 
-        if (flFloor < fromFloor && fromFloor < slFloor) return firstLift;
-        else if (slFloor < fromFloor && fromFloor < flFloor) return secondLift;
-
-        if (firstLift.getStates() == null) return firstLift;
-        else if (secondLift.getStates() == null) return secondLift;
-
-        return firstLift.getCurrCapacity() < secondLift.getCurrCapacity() ? firstLift : secondLift;
+    //situation from TZ
+    private void hardCode(Cabin firstLift, Cabin secondLift) {
+        Floor floor = floors.get(0);
+        floor.addToQueue(14);
+        if (!floor.haveSubscriber()) floor.subscribe(chooseLift(firstLift, secondLift, 0));
+        floor = floors.get(14);
+        floor.addToQueue(1);
+        if (!floor.haveSubscriber()) floor.subscribe(chooseLift(firstLift, secondLift, 14));
     }
 
-    private void random(){
-        /*floors.get(1).addToQueue(14);
-        chooseLift(fl,sl,1).addToOrder(1);
+    //random generator
+    private void random(Cabin firstLift, Cabin secondLift) {
+        Random random = new Random();
+        while (true) {
 
-        floors.get(15).addToQueue(1);
-        chooseLift(fl,sl,15).addToOrder(15);*/
+            //add floor to queue of cabin again
+            while (mainOrder.size() != 0) {
+                Integer fromFloor = mainOrder.poll();
+                Floor floor = floors.get(fromFloor - 1);
+                if (!floor.haveSubscriber()) floor.subscribe(chooseLift(firstLift, secondLift, fromFloor));
+            }
 
-        boolean generator = true;
-        while (generator) {
-            Random random = new Random();
+            //generate passenger activity
 
-            int sf = random.nextInt(1, 21);
-            int tf = random.nextInt(1, 21);
-            /*while (sf == tf) {
-                tf = random.nextInt(1, 20);
-            }*/
-            floors.get(sf-1).addToQueue(tf);
-            //chooseLift(fl, sl, sf).addToOrder(sf);
-            fl.addToOrder(sf);
+            int fromFloor = random.nextInt(1, 21);
+            int toFloor = random.nextInt(1, 21);
+            while (fromFloor == toFloor) {
+                toFloor = random.nextInt(1, 21);
+            }
 
-            System.out.println(String.format(" \t a man from %s floor want to %s floor", sf, tf));
+            Floor floor = floors.get(fromFloor - 1);
+            floor.addToQueue(toFloor);
+            if (!floor.haveSubscriber()) floor.subscribe(chooseLift(firstLift, secondLift, fromFloor));
 
+            System.out.println(String.format(" \t a man from %s floor want to %s floor", fromFloor, toFloor));
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
-    }
-    private void custom(){
-        boolean generator = true;
-        Scanner scanner = new Scanner(System.in);
-        while (generator) {
-            System.out.println("Write: ");
-            int fromFloor = scanner.nextInt();
-            int toFloor = scanner.nextInt();
 
-            floors.get(fromFloor-1).addToQueue(toFloor);
-            //fl.addToOrder(fromFloor);
-
-            System.out.println(String.format(" \t a man from %s floor want to %s floor", fromFloor, toFloor));
-        }
     }
+
+    //which lift to send a passenger
+    private Cabin chooseLift(Cabin firstLift, Cabin secondLift, int fromFloor) {
+        int difference = firstLift.getCurrFloor() - fromFloor;
+        if ((difference > 0 && firstLift.isDown()) || (difference < 0 && firstLift.isUp()) || firstLift.isStay())
+            return firstLift;
+        else return secondLift;
+    }
+
 }
