@@ -1,0 +1,129 @@
+ a man from 8 floor want to 2 floor
+firstLift on 1
+firstLift on 2
+firstLift on 3
+firstLift on 4
+firstLift on 5
+firstLift on 6
+firstLift on 7
+firstLift on 8
+firstLift	 	 peek pass on 8 floor
+firstLift on 7
+ 	 a man from 1 floor want to 4 floor
+firstLift on 6
+firstLift on 5
+firstLift on 4
+firstLift on 3
+firstLift on 2
+firstLift	 	 drop 1 pass on 2 floor
+firstLift on 1
+firstLift	 	 peek pass on 1 floor
+firstLift on 2
+firstLift on 3
+firstLift on 4
+firstLift	 	 drop 1 pass on 4 floor
+ 	 a man from 5 floor want to 8 floor
+firstLift on 4
+firstLift on 5
+firstLift	 	 peek pass on 5 floor
+firstLift on 6
+firstLift on 7
+firstLift on 8
+firstLift	 	 drop 1 pass on 8 floor
+ 	 a man from 4 floor want to 3 floor
+firstLift on 8
+firstLift on 7
+firstLift on 6
+firstLift on 5
+firstLift on 4
+firstLift	 	 peek pass on 4 floor
+firstLift on 3
+firstLift	 	 drop 1 pass on 3 floor
+ 	 a man from 2 floor want to 9 floor
+firstLift on 3
+firstLift on 2
+firstLift	 	 peek pass on 2 floor
+firstLift on 3
+firstLift on 4
+firstLift on 5
+firstLift on 6
+firstLift on 7
+firstLift on 8
+firstLift on 9
+firstLift	 	 drop 1 pass on 9 floor
+ 	 a man from 5 floor want to 6 floor
+firstLift on 9
+firstLift on 8
+firstLift on 7
+firstLift on 6
+firstLift on 5
+firstLift	 	 peek pass on 5 floor
+firstLift on 6
+firstLift	 	 drop 1 pass on 6 floor
+ 	 a man from 6 floor want to 8 floor
+firstLift on 6
+firstLift	 	 peek pass on 6 floor
+firstLift on 7
+firstLift on 8
+firstLift	 	 drop 1 pass on 8 floor
+firstLift on 7
+firstLift on 6
+firstLift on 5
+firstLift on 4
+firstLift on 3
+firstLift on 2
+firstLift on 1
+ 	 a man from 1 floor want to 2 floor
+firstLift on 0
+Exception in thread "firstLift" java.lang.RuntimeException: java.lang.ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 20
+	at org.example.Entity.Cabin.run(Cabin.java:66)
+Caused by: java.lang.ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 20
+	at org.example.Entity.Cabin.run(Cabin.java:54)
+
+
+
+
+
+firstLift on 1
+ 	 a man from 15 floor want to 4 floor
+firstLift on 1
+firstLift on 2
+firstLift on 3
+firstLift on 4
+firstLift on 5
+firstLift on 6
+firstLift on 7
+firstLift on 8
+firstLift on 9
+firstLift on 10
+firstLift on 11
+firstLift on 12
+firstLift on 13
+firstLift on 14
+firstLift on 15
+firstLift	 	 peek pass on 15 floor
+firstLift on 14
+firstLift on 13
+firstLift on 12
+firstLift on 11
+ 	 a man from 10 floor want to 11 floor
+firstLift on 10
+firstLift	 	 peek pass on 10 floor
+firstLift on 11
+firstLift	 	 drop 1 pass on 11 floor
+firstLift on 10
+firstLift on 9
+firstLift on 8
+firstLift on 7
+firstLift on 6
+firstLift on 5
+firstLift on 4
+firstLift	 	 drop 1 pass on 4 floor
+firstLift on 3
+firstLift on 2
+firstLift on 1
+firstLift on 0
+Exception in thread "firstLift" java.lang.RuntimeException: java.lang.ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 20
+	at org.example.Entity.Cabin.run(Cabin.java:72)
+Caused by: java.lang.ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 20
+	at org.example.Entity.Cabin.run(Cabin.java:56)
